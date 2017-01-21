@@ -73,8 +73,8 @@
       <target file="stm32f10x_dma.o" lastModified="159be11f85a">
          <source file="..\..\..\components\coocox-master\STM32F10x_MD_STDLIB\source\stm32f10x_dma.c" lastModified="159be101974"/>
       </target>
-      <target file="main.o" lastModified="159c0d9dd30">
-         <source file="..\..\..\app\main.c" lastModified="159c0d967f3"/>
+      <target file="main.o" lastModified="159c1a15ad6">
+         <source file="..\..\..\app\main.c" lastModified="159c1a1540b"/>
       </target>
       <target file="stm32f10x_usart.o" lastModified="159be11f3f2">
          <source file="..\..\..\components\coocox-master\STM32F10x_MD_STDLIB\source\stm32f10x_usart.c" lastModified="159be101991"/>

@@ -31,65 +31,45 @@ void display_init(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
-
-//Send data to display, 8 7-segment digits, 74HC595 shift register driver
-void display_number(int number, int ppos)
-
+//Send data to shift registers
+void sendspi16bit(uint16_t data)
 {
-	int digit;
-	int serdata;
-	for(int i = 0; i < 8; i++)//splits number to separate digits
+	for(int i = 0; i < 16; i++)
 	{
-		digit = number % 10;
-		number /= 10;
-		switch (digit)        //7-segment encoding
-		{
-		case 0:
-			serdata = 252;
-			break;
-		case 1:
-			serdata = 96;
-			break;
-		case 2:
-			serdata = 218;
-			break;
-		case 3:
-			serdata = 242;
-			break;
-		case 4:
-			serdata = 102;
-			break;
-		case 5:
-			serdata = 182;
-			break;
-		case 6:
-			serdata = 62;
-			break;
-		case 7:
-			serdata = 224;
-			break;
-		case 8:
-			serdata = 254;
-			break;
-		case 9:
-			serdata = 230;
-			break;
-		}
-		if(ppos == i) serdata |= 1;//Append point
-		serdata = (~serdata) & 255;//Invert segment data for cathode control
-		serdata |= (1<<(15-i));    //Lit the corresponding anode
-
-		for(int j = 0; j < 16; j++)
-		{
-			if(serdata & 0x1)  GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_SET); //Set DIO
-			GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_SET);                    //Set SCLK
-			GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_RESET);                  //Reset SCLK
-			GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_RESET);                  //Reset DIO
-			serdata >>= 1;
-		}
-		 GPIO_WriteBit(GPIOB, GPIO_Pin_13, Bit_SET);                       //Set RCLK up and update display
-		 GPIO_WriteBit(GPIOB, GPIO_Pin_13, Bit_RESET);                     //Reset RCLK
+		if(data % (1 << 15)) GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_SET); //Set DIO
+		GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_SET);                      //Set SCLK
+		GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_RESET);                    //Reset SCLK
+		GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_RESET);                    //Reset DIO
+		data <<= 1;
 	}
+}
+//Send data to display, static 74HC595 shift register-controlled nixie driver
+void display_output(int hhmmss, int isalarmset, int issynchronized)
+{
+	uint16_t hh,mm,ss;
+
+	ss = 1 << (hhmmss % 10);         // seconds
+	hhmmss /= 10;
+	ss |= 1 << (10 + (hhmmss % 10)); // decades of seconds
+	hhmmss /= 10;
+
+	mm = 1 << (hhmmss % 10);         // minutes
+	hhmmss /= 10;
+	mm |= 1 << (10 + (hhmmss % 10)); // decades of minutes
+	hhmmss /= 10;
+
+	hh = 1 << (hhmmss % 10);         // hours
+	hhmmss /= 10;
+	hh |= 1 << (10 + (hhmmss % 10)); // decades of hours
+
+	if(isalarmset)      hh |= (1 << 13); //Enable "ohm" symbol
+	if(issynchronized) hh |= (1 << 14); //Enable "S" symbol
+	hh |= (1 << 15); //Decimal points always on; included for ease of PWM brightness control
+	sendspi16bit(hh);
+	sendspi16bit(mm);
+	sendspi16bit(ss);
+	GPIO_WriteBit(GPIOB, GPIO_Pin_13, Bit_SET);                       //Set RCLK up and update display
+	GPIO_WriteBit(GPIOB, GPIO_Pin_13, Bit_RESET);                     //Reset RCLK
 }
 //Initialize internal ADC for ambient light measurements
 void adc_init()
@@ -146,84 +126,30 @@ TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 TIM_OCInitTypeDef  TIM_OCInitStructure;
 void PWM_init()
 {
-	/* TIM3 clock enable */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	// TIM3 clock enable
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); // TIM3 clock enable
 
-	/* GPIOA and GPIOB clock enable */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |
-	                         RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE);
+	                         RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE); 	// GPIOB clock enable
 
 	GPIO_InitTypeDef GPIO_InitStructure;
-	/* GPIOA Configuration:TIM3 Channel 1, 2, 3 and 4 as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1 ;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 /*| GPIO_Pin_15*/ ;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-	uint16_t CCR1_Val = 10;
-	uint16_t CCR2_Val = 10;
-	uint16_t CCR3_Val = 10;
 	uint16_t CCR4_Val = 10;
 	uint16_t PrescalerValue = 0;
 
-	/* -----------------------------------------------------------------------
-		    TIM3 Configuration: generate 4 PWM signals with 4 different duty cycles:
-		    The TIM3CLK frequency is set to SystemCoreClock (Hz), to get TIM3 counter
-		    clock at 24 MHz the Prescaler is computed as following:
-		     - Prescaler = (TIM3CLK / TIM3 counter clock) - 1
-		    SystemCoreClock is set to 72 MHz for Low-density, Medium-density, High-density
-		    and Connectivity line devices and to 24 MHz for Low-Density Value line and
-		    Medium-Density Value line devices
-		    The TIM3 is running at 36 KHz: TIM3 Frequency = TIM3 counter clock/(ARR + 1)
-		                                                  = 24 MHz / 666 = 36 KHz
-		    TIM3 Channel1 duty cycle = (TIM3_CCR1/ TIM3_ARR)* 100 = 50%
-		    TIM3 Channel2 duty cycle = (TIM3_CCR2/ TIM3_ARR)* 100 = 37.5%
-		    TIM3 Channel3 duty cycle = (TIM3_CCR3/ TIM3_ARR)* 100 = 25%
-		    TIM3 Channel4 duty cycle = (TIM3_CCR4/ TIM3_ARR)* 100 = 12.5%
-		  ----------------------------------------------------------------------- */
-	/* Compute the prescaler value */
+	PrescalerValue = (uint16_t) (SystemCoreClock / 24000000) - 1; //Compute the prescaler value
 
-	PrescalerValue = (uint16_t) (SystemCoreClock / 24000000) - 1;
-	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = 1023;
+	TIM_TimeBaseStructure.TIM_Period = 1023; //Time base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
 	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
-	/* PWM1 Mode configuration: Channel1 */
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = CCR1_Val;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-
-	TIM_OC1Init(TIM3, &TIM_OCInitStructure);
-
-	TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Enable);
-
-	/* PWM1 Mode configuration: Channel2 */
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = CCR2_Val;
-
-	TIM_OC2Init(TIM3, &TIM_OCInitStructure);
-
-	TIM_OC2PreloadConfig(TIM3, TIM_OCPreload_Enable);
-
-	/* PWM1 Mode configuration: Channel3 */
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = CCR3_Val;
-
-	TIM_OC3Init(TIM3, &TIM_OCInitStructure);
-
-	TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Enable);
-
-	/* PWM1 Mode configuration: Channel4 */
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //PWM1 Mode configuration: Channel4
 	TIM_OCInitStructure.TIM_Pulse = CCR4_Val;
 
 	TIM_OC4Init(TIM3, &TIM_OCInitStructure);
@@ -232,40 +158,16 @@ void PWM_init()
 
 	TIM_ARRPreloadConfig(TIM3, ENABLE);
 
-	/* TIM3 enable counter */
 	TIM_Cmd(TIM3, ENABLE);
 }
-//Duty cycle calculation, 16-bit
-int dimpwmvalue(void)
+//Duty cycle calculation and dimming
+void nixie_dimming()
 {
 	int p = insolation();
 	if(p > 32768) p = 32767;
 	if(p < 128) p = 128;
-	return (p*1024)/32768;
-}
-void RGB_led_nixie_dimming(int red, int green, int blue)
-{
-	int dim = dimpwmvalue();
-	red *= dim;
-	red /= 1024;
-	green *= dim;
-	green /= 1024;
-	blue *= dim;
-	blue /= 1024;
 
-	/* PWM1 Mode configuration: Channel1 */
-	TIM_OCInitStructure.TIM_Pulse = 1023 - red;  //omit 1023- for transistir amplifier
-	TIM_OC1Init(TIM3, &TIM_OCInitStructure);
-
-	/* PWM1 Mode configuration: Channel2 */
-	TIM_OCInitStructure.TIM_Pulse = 1023 - green;//omit 1023- for transistir amplifier
-	TIM_OC2Init(TIM3, &TIM_OCInitStructure);
-
-	/* PWM1 Mode configuration: Channel3 */
-	TIM_OCInitStructure.TIM_Pulse = 1023 - blue; //omit 1023- for transistir amplifier
-	TIM_OC3Init(TIM3, &TIM_OCInitStructure);
-
-	TIM_OCInitStructure.TIM_Pulse = dim;
+	TIM_OCInitStructure.TIM_Pulse = ((p*1024)/32768);
 	TIM_OC4Init(TIM3, &TIM_OCInitStructure);
 }
 
@@ -454,36 +356,18 @@ int alarm_hhmmss (void)
 {
 	return 100*bcdtodec(date.alarm2_minutes) + 100*100*bcdtodec(date.alarm2_hours);
 }
-//resets alarm after 1 minute
+//resets alarm after 1 minute if it was not switched off manually
 void alarmreset(int time, int alarm)
 {
 	if(date.status & 10)//alarm is triggered now
-		if ((time - alarm > 100) || (alarm - time > 100)) //more than 1 monute passed (time is in decimal hhmmss format)
+		if ((time - alarm > 100) || (alarm - time > 100)) //more than 1 minute passed (time is in decimal hhmmss format)
 		{
 			date.status &= 0xfd;
 			DS3231_WriteDateRAW();
 		}
 }
-//Initialize GPS synchronization led
-void syncled_init(void)
-{
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-	// Configure the GPIO_LED pin
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
-}
-void syncled_on(void)
-{
-	GPIOA->BSRR = GPIO_BSRR_BS8;
-}
-void syncled_off(void)
-{
-	GPIOA->BSRR = GPIO_BSRR_BR8;
-}
+//GPS synchronization flag
+int syncgps = 0;
 //Buttons for time and alarm setting
 void buttons_init(void)
 {
@@ -493,6 +377,21 @@ void buttons_init(void)
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+//Alarm indication input (alarm on/off switch is not a part of MCU program)
+//MCU reads external status to form a signal on display
+void alarm_indication_init(void)
+{
+	GPIO_InitTypeDef  GPIO_InitStructure;
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+    GPIO_InitStructure.GPIO_Pin = (GPIO_Pin_5);
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+}
+int alarm_indication(void)
+{
+	return GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_5);
 }
 //Buttons polling timer initialization
 void buttons_timer_init(void)
@@ -642,7 +541,7 @@ void synctime(int utctime)
 			date.seconds = dectobcd(utctime_s % 60); //sync only minutes and seconds to preserve time zone hours shift
 			date.minutes = dectobcd(utctime_s / 60);
 	  		timesettings_ischanged = 1;
-			syncled_on();
+	  		syncgps = 1;
 		}
 	}
 }
@@ -652,7 +551,7 @@ void USART1_IRQHandler(void)
 {
 	static int cnt = 0;          //String position
 	static int utctime = 0;
-	static char n_sat = 0;       //Number of sattelites detected
+	static char n_sat = 0;       //Number of satellites detected
 	unsigned char tmp;
 	if((USART1->SR & USART_SR_RXNE)!=0) //Check if interrupt is caused by receiving of character
 	{
@@ -682,7 +581,7 @@ void USART1_IRQHandler(void)
 				    break;
 				case 15: utctime += tmp;
 				    break;
-				//Sattelite number positions
+				//Satellite number positions
 				case 46: n_sat += 10*tmp;
 					break;
 				case 47:
@@ -707,7 +606,7 @@ void USART1_IRQHandler(void)
 	}
 }
 
-int display_alarm; // 0 -- display time, 1 -- display alarm time
+int display_alarm; // 0 -- display time, 1 -- display alarm time flag
 //Buttons for time and alarm setting actions
 void TIM4_IRQHandler(void)
 {
@@ -738,10 +637,9 @@ void TIM4_IRQHandler(void)
     		alarmhourincr();
     		timesettings_ischanged = 1;
     	}
-    	syncled_off();
+    	syncgps = 0;
     }
 }
-int u;
 int main(void)
 {
 	int time,alarm;         //hhmmss decimal values
@@ -751,11 +649,11 @@ int main(void)
 	if( DS3231_is_reset()) DS3231_startsettings();
 	GPS_init();
 	display_init();
-	adc_init();
-	PWM_init();
+	adc_init();             //ADC for light sensor
+	PWM_init();             //PWM for brightness control
 	buttons_init();
-	syncled_init();
 	buttons_timer_init();
+	alarm_indication_init();
 	while(1)
 	{
 		IWDG_ReloadCounter();      //Watchdog reset
@@ -768,9 +666,9 @@ int main(void)
 		time = hhmmss();
 		alarm =  alarm_hhmmss();
 		alarmreset(time, alarm);
-		RGB_led_nixie_dimming(800, 10, 1000);
-		if(display_alarm) for(int i = 0; i < 100; i++) display_number(alarm,0);
-		else for(int i = 0; i < 100; i++) display_number(time,0);
+		nixie_dimming();
+		if(display_alarm) display_output(alarm, alarm_indication(), syncgps);
+		else display_output(alarm, alarm_indication(), syncgps);
 	}
 }
 

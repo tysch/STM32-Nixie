@@ -1,21 +1,21 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <history>
    <processor signature="arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -g2 -Map=STM32-Nixie.map -O0 --gc-sections -LC:\Users\Seven\AppData\Roaming\CooCox\CoIDE\configuration\ProgramData\STM32-Nixie -TC:\Users\Seven\AppData\Roaming\CooCox\CoIDE\configuration\ProgramData\STM32-Nixie/arm-gcc-link.ld -g">
-      <target file="STM32-Nixie.elf" lastModified="159c0d9dfbe">
+      <target file="STM32-Nixie.elf" lastModified="159c1a162a3">
          <source file="..\obj\stm32f10x_fsmc.o" lastModified="159be11e887"/>
          <source file="..\obj\stm32f10x_gpio.o" lastModified="159be11ec28"/>
          <source file="..\obj\stm32f10x_rcc.o" lastModified="159be11f088"/>
          <source file="..\obj\stm32f10x_dma.o" lastModified="159be11f85a"/>
          <source file="..\obj\stm32f10x_sdio.o" lastModified="159be11f748"/>
          <source file="..\obj\misc.o" lastModified="159be11f95b"/>
-         <source file="..\obj\stm32f10x_dbgmcu.o" lastModified="159be11e64c"/>
          <source file="..\obj\stm32f10x_i2c.o" lastModified="159be11fcaa"/>
+         <source file="..\obj\stm32f10x_dbgmcu.o" lastModified="159be11e64c"/>
          <source file="..\obj\stm32f10x_pwr.o" lastModified="159be11e9bd"/>
          <source file="..\obj\startup_stm32f10x_md.o" lastModified="159be11e8b4"/>
          <source file="..\obj\stm32f10x_cec.o" lastModified="159be11f62f"/>
          <source file="..\obj\system_stm32f10x.o" lastModified="159be11e75a"/>
-         <source file="..\obj\stm32f10x_can.o" lastModified="159be11eb07"/>
          <source file="..\obj\stm32f10x_bkp.o" lastModified="159be11fdb4"/>
+         <source file="..\obj\stm32f10x_can.o" lastModified="159be11eb07"/>
          <source file="..\obj\stm32f10x_flash.o" lastModified="159be11f527"/>
          <source file="..\obj\stm32f10x_spi.o" lastModified="159be11fb7a"/>
          <source file="..\obj\stm32f10x_iwdg.o" lastModified="159be11feb5"/>
@@ -27,7 +27,7 @@
          <source file="..\obj\stm32f10x_adc.o" lastModified="159be11f2c1"/>
          <source file="..\obj\stm32f10x_exti.o" lastModified="159be11f18f"/>
          <source file="..\obj\stm32f10x_dac.o" lastModified="159be11ed3e"/>
-         <source file="..\obj\main.o" lastModified="159c0d9dd30"/>
+         <source file="..\obj\main.o" lastModified="159c1a15ad6"/>
       </target>
    </processor>
 </history>
