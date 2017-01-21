@@ -4,6 +4,20 @@
 #include <string.h>
 #include <stdlib.h>
 
+void watchdog_timer_init (void)
+{
+  /* Enable the LSI OSC */
+	RCC_LSICmd(ENABLE);   //Enable LSI Oscillator
+	while (RCC_GetFlagStatus(RCC_FLAG_LSIRDY) == RESET) // Wait till LSI is ready
+	{
+	}
+	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);       // Enable Watchdog
+	IWDG_SetPrescaler(IWDG_Prescaler_64);                // 4, 8, 16 ... 256
+	IWDG_SetReload(0x0FFF);                     //This parameter must be a number between 0 and 0x0FFF.
+	IWDG_ReloadCounter();                       //Initial watchdog reset
+	IWDG_Enable();
+}
+
 //GPS sync or manual changes occurred
 int timesettings_ischanged = 0;
 
@@ -731,6 +745,7 @@ int u;
 int main(void)
 {
 	int time,alarm;         //hhmmss decimal values
+	watchdog_timer_init();
 	DS3231_init();
 	DS3231_ReadDateRAW();   //Check if DS3231 was set before power up
 	if( DS3231_is_reset()) DS3231_startsettings();
@@ -743,7 +758,8 @@ int main(void)
 	buttons_timer_init();
 	while(1)
 	{
-    	if(timesettings_ischanged) //Time settings was changed manually or via GPS synchronization
+		IWDG_ReloadCounter();      //Watchdog reset
+		if(timesettings_ischanged) //Time settings was changed manually or via GPS synchronization
     	{
     		DS3231_WriteDateRAW();
     		timesettings_ischanged = 0;
