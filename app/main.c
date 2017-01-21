@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-//GPS sync or manual changes occured
+//GPS sync or manual changes occurred
 int timesettings_ischanged = 0;
 
 //Initialize display shift registers driver
