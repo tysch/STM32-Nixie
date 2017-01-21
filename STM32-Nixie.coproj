@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Project version="2G - 2.0.5" name="STM32-Nixie">
+  <Target name="STM32-Nixie" isCurrent="1">
+    <Device manufacturerId="9" manufacturerName="ST" chipId="599" chipName="STM32F103C8T6" boardId="" boardName="" boardUrl="" coreId="3" coreName="Cortex M3"/>
+    <BuildOption>
+      <Compile>
+        <Option name="OptimizationLevel" value="0"/>
+        <Option name="UseFPU" value="0"/>
+        <Option name="UserEditCompiler" value=""/>
+        <Option name="SupportCPlusplus" value="0"/>
+        <Option name="DEBUG" value="2"/>
+        <Option name="WARNING" value="1"/>
+        <Includepaths>
+          <Includepath path="."/>
+        </Includepaths>
+        <DefinedSymbols>
+          <Define name="STM32F103C8T6"/>
+        </DefinedSymbols>
+      </Compile>
+      <Link useDefault="0">
+        <Option name="DiscardUnusedSection" value="0"/>
+        <Option name="UserEditLinkder" value=""/>
+        <Option name="UseMemoryLayout" value="1"/>
+        <Option name="nostartfiles" value="0"/>
+        <Option name="LTO" value="0"/>
+        <Option name="IsNewStartupCode" value="1"/>
+        <LinkedLibraries/>
+        <MemoryAreas debugInFlashNotRAM="1">
+          <Memory name="IROM1" type="ReadOnly" size="0x00010000" startValue="0x08000000"/>
+          <Memory name="IRAM1" type="ReadWrite" size="0x00005000" startValue="0x20000000"/>
+          <Memory name="IROM2" type="ReadOnly" size="" startValue=""/>
+          <Memory name="IRAM2" type="ReadWrite" size="" startValue=""/>
+        </MemoryAreas>
+        <LocateLinkFile path="../../../appdata/roaming/coocox/coide/configuration/programdata/stm32-nixie/arm-gcc-link.ld" type="0"/>
+      </Link>
+      <Output>
+        <Option name="OutputFileType" value="0"/>
+        <Option name="Path" value="./"/>
+        <Option name="Name" value="STM32-Nixie"/>
+        <Option name="HEX" value="1"/>
+        <Option name="BIN" value="1"/>
+      </Output>
+      <User>
+        <UserRun name="Run#1" type="Before" checked="0" value=""/>
+        <UserRun name="Run#1" type="After" checked="0" value=""/>
+      </User>
+    </BuildOption>
+    <DebugOption>
+      <Option name="org.coocox.codebugger.gdbjtag.core.adapter" value="ST-Link"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.debugMode" value="SWD"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.clockDiv" value="1M"/>
+      <Option name="org.coocox.codebugger.gdbjtag.corerunToMain" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkgdbserver" value="D:\Program Files (x86)\SEGGER\JLink_V490e\JLinkGDBServerCL.exe"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.userDefineGDBScript" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.targetEndianess" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkResetMode" value="Type 0: Normal"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.resetMode" value="SYSRESETREQ"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifSemihost" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifCacheRom" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ipAddress" value="127.0.0.1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.portNumber" value="2009"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.autoDownload" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.verify" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.downloadFuction" value="Erase Effected"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.defaultAlgorithm" value="C:\Users\Seven\AppData\Roaming\CooCox\CoIDE\config\flash\CooCox-Flash\CoIDE_STM32F1xx_MD_64K\STM32F10x_MD_64.elf"/>
+    </DebugOption>
+    <ExcludeFile/>
+  </Target>
+  <Components path="./">
+    <Component id="97" name="cmsis_core" path="" type="null"/>
+    <Component id="187" name="STM32F10x_MD_STDLIB" path="" type="BasicComponet"/>
+  </Components>
+  <LocalComponents/>
+  <Files>
+    <File name="components/STM32F10x_MD_STDLIB" path="" type="2"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_fsmc.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_fsmc.c" type="1"/>
+    <File name="components/cmsis_core/core_cmInstr.h" path="components/coocox-master/cmsis_core/source/core_cmInstr.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_iwdg.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_iwdg.h" type="1"/>
+    <File name="components/cmsis_core/core_cm7.h" path="components/coocox-master/cmsis_core/source/core_cm7.h" type="1"/>
+    <File name="components/cmsis_core/core_cmFunc.h" path="components/coocox-master/cmsis_core/source/core_cmFunc.h" type="1"/>
+    <File name="components/cmsis_core" path="" type="2"/>
+    <File name="components/STM32F10x_MD_STDLIB/misc.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/misc.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_rtc.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_rtc.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_gpio.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_gpio.c" type="1"/>
+    <File name="components/cmsis_core/arm_const_structs.h" path="components/coocox-master/cmsis_core/source/arm_const_structs.h" type="1"/>
+    <File name="components/cmsis_core/arm_common_tables.h" path="components/coocox-master/cmsis_core/source/arm_common_tables.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_rcc.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_rcc.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_conf.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_conf.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_adc.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_adc.h" type="1"/>
+    <File name="components/cmsis_core/core_sc300.h" path="components/coocox-master/cmsis_core/source/core_sc300.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_dma.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_dma.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_sdio.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_sdio.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_flash.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_flash.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_can.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_can.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/misc.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/misc.c" type="1"/>
+    <File name="components/cmsis_core/core_cm4_simd.h" path="components/coocox-master/cmsis_core/source/core_cm4_simd.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_dbgmcu.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_dbgmcu.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_i2c.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_i2c.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_pwr.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_pwr.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/startup_stm32f10x_md.s" path="components/coocox-master/STM32F10x_MD_STDLIB/source/startup_stm32f10x_md.s" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_tim.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_tim.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_cec.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_cec.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/system_stm32f10x.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/system_stm32f10x.c" type="1"/>
+    <File name="components/cmsis_core/core_cm0plus.h" path="components/coocox-master/cmsis_core/source/core_cm0plus.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_fsmc.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_fsmc.h" type="1"/>
+    <File name="components/cmsis_core/core_sc000.h" path="components/coocox-master/cmsis_core/source/core_sc000.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_cec.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_cec.h" type="1"/>
+    <File name="components/cmsis_core/core_cm0.h" path="components/coocox-master/cmsis_core/source/core_cm0.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_can.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_can.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_bkp.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_bkp.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_crc.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_crc.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_dma.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_dma.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_flash.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_flash.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_dac.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_dac.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_spi.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_spi.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_sdio.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_sdio.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_iwdg.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_iwdg.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_wwdg.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_wwdg.c" type="1"/>
+    <File name="components/cmsis_core/core_cmSimd.h" path="components/coocox-master/cmsis_core/source/core_cmSimd.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_i2c.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_i2c.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_dbgmcu.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_dbgmcu.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_usart.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_usart.h" type="1"/>
+    <File name="components/cmsis_core/core_cm3.h" path="components/coocox-master/cmsis_core/source/core_cm3.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_tim.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_tim.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/system_stm32f10x.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/system_stm32f10x.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_wwdg.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_wwdg.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_rtc.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_rtc.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_gpio.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_gpio.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_pwr.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_pwr.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_usart.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_usart.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_crc.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_crc.c" type="1"/>
+    <File name="components/cmsis_core/core_cm4.h" path="components/coocox-master/cmsis_core/source/core_cm4.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_exti.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_exti.h" type="1"/>
+    <File name="components" path="" type="2"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_adc.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_adc.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_rcc.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_rcc.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_exti.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_exti.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_dac.c" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_dac.c" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_spi.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_spi.h" type="1"/>
+    <File name="components/STM32F10x_MD_STDLIB/stm32f10x_bkp.h" path="components/coocox-master/STM32F10x_MD_STDLIB/source/stm32f10x_bkp.h" type="1"/>
+    <File name="main.c" path="app/main.c" type="1"/>
+    <File name="components/cmsis_core/arm_math.h" path="components/coocox-master/cmsis_core/source/arm_math.h" type="1"/>
+  </Files>
+  <Bookmarks/>
+</Project>

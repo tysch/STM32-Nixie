@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Project version="2G - Default" name="cmsis_core">
+  <Target name="cmsis_core" isCurrent="1">
+    <Device manufacturerId="8" manufacturerName="Nuvoton" chipId="15" chipName="NUC472HI8AE" boardId="" boardName="" boardUrl="" coreId="4" coreName="Cortex M4"/>
+    <BuildOption>
+      <Compile>
+        <Option name="OptimizationLevel" value="0"/>
+        <Option name="UseFPU" value="0"/>
+        <Option name="UserEditCompiler" value=""/>
+        <Option name="SupportCPlusplus" value="0"/>
+        <Option name="DEBUG" value="2"/>
+        <Option name="WARNING" value="1"/>
+        <Includepaths>
+          <Includepath path="."/>
+        </Includepaths>
+        <DefinedSymbols>
+          <Define name="NUC472HI8AE"/>
+        </DefinedSymbols>
+      </Compile>
+      <Link useDefault="0">
+        <Option name="DiscardUnusedSection" value="0"/>
+        <Option name="UserEditLinkder" value=""/>
+        <Option name="UseMemoryLayout" value="1"/>
+        <Option name="nostartfiles" value="1"/>
+        <Option name="LTO" value="0"/>
+        <Option name="IsNewStartupCode" value="1"/>
+        <LinkedLibraries/>
+        <MemoryAreas debugInFlashNotRAM="1">
+          <Memory name="IROM1" type="ReadOnly" size="0x00080000" startValue="0x00000000"/>
+          <Memory name="IRAM1" type="ReadWrite" size="0x00010000" startValue="0x20000000"/>
+          <Memory name="IROM2" type="ReadOnly" size="" startValue=""/>
+          <Memory name="IRAM2" type="ReadWrite" size="" startValue=""/>
+        </MemoryAreas>
+        <LocateLinkFile path="../../../../../../appdata/roaming/coocox/coide/configuration/programdata/cmsis_core/arm-gcc-link.ld" type="0"/>
+      </Link>
+      <Output>
+        <Option name="OutputFileType" value="0"/>
+        <Option name="Path" value="./"/>
+        <Option name="Name" value="cmsis_core"/>
+        <Option name="HEX" value="1"/>
+        <Option name="BIN" value="1"/>
+      </Output>
+      <User>
+        <UserRun name="Run#1" type="Before" checked="0" value=""/>
+        <UserRun name="Run#1" type="After" checked="0" value=""/>
+      </User>
+    </BuildOption>
+    <DebugOption>
+      <Option name="org.coocox.codebugger.gdbjtag.core.adapter" value="Nu-Link"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.debugMode" value="SWD"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.clockDiv" value="1M"/>
+      <Option name="org.coocox.codebugger.gdbjtag.corerunToMain" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkgdbserver" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.userDefineGDBScript" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.targetEndianess" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkResetMode" value="Type 0: Normal"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.resetMode" value="SYSRESETREQ"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifSemihost" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifCacheRom" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ipAddress" value="127.0.0.1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.portNumber" value="2009"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.autoDownload" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.verify" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.downloadFuction" value="Erase Effected"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.defaultAlgorithm" value="C:\Users\xinyun\AppData\Roaming\CooCox\CoIDE\config\flash\CooCox-Flash\CoIDE-NUC4xx_512K\NUC4xx_512.elf"/>
+    </DebugOption>
+    <ExcludeFile/>
+  </Target>
+  <Components path="./"/>
+  <LocalComponents/>
+  <Files>
+    <File name="core_cmSimd.h" path="source/core_cmSimd.h" type="1"/>
+    <File name="arm_math.h" path="source/arm_math.h" type="1"/>
+    <File name="arm_const_structs.h" path="source/arm_const_structs.h" type="1"/>
+    <File name="core_cm0plus.h" path="source/core_cm0plus.h" type="1"/>
+    <File name="core_cm4_simd.h" path="source/core_cm4_simd.h" type="1"/>
+    <File name="core_cmFunc.h" path="source/core_cmFunc.h" type="1"/>
+    <File name="core_cm7.h" path="source/core_cm7.h" type="1"/>
+    <File name="core_cmInstr.h" path="source/core_cmInstr.h" type="1"/>
+    <File name="core_sc300.h" path="source/core_sc300.h" type="1"/>
+    <File name="core_cm0.h" path="source/core_cm0.h" type="1"/>
+    <File name="core_cm4.h" path="source/core_cm4.h" type="1"/>
+    <File name="core_cm3.h" path="source/core_cm3.h" type="1"/>
+    <File name="arm_common_tables.h" path="source/arm_common_tables.h" type="1"/>
+    <File name="core_sc000.h" path="source/core_sc000.h" type="1"/>
+    <File name="main.c" path="test/main.c" type="1"/>
+  </Files>
+  <Bookmarks/>
+</Project>
