@@ -3,14 +3,14 @@
 #include "system_stm32f10x.h"
 #include <string.h>
 #include <stdlib.h>
+#include "display.h"
+#include "brightnesscontrol.h"
 
 void watchdog_timer_init (void)
 {
   /* Enable the LSI OSC */
 	RCC_LSICmd(ENABLE);   //Enable LSI Oscillator
-	while (RCC_GetFlagStatus(RCC_FLAG_LSIRDY) == RESET) // Wait till LSI is ready
-	{
-	}
+	while (RCC_GetFlagStatus(RCC_FLAG_LSIRDY) == RESET) {}// Wait till LSI is ready
 	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);       // Enable Watchdog
 	IWDG_SetPrescaler(IWDG_Prescaler_64);                // 4, 8, 16 ... 256
 	IWDG_SetReload(0x0FFF);                     //This parameter must be a number between 0 and 0x0FFF.
@@ -20,156 +20,6 @@ void watchdog_timer_init (void)
 
 //GPS sync or manual changes occurred
 int timesettings_ischanged = 0;
-
-//Initialize display shift registers driver
-void display_init(void)
-{
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-	GPIO_InitStructure.GPIO_Pin   = (GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14);
-	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;            //Push-Pull output
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-}
-//Send data to shift registers
-void sendspi16bit(uint16_t data)
-{
-	for(int i = 0; i < 16; i++)
-	{
-		if(data % (1 << 15)) GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_SET); //Set DIO
-		GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_SET);                      //Set SCLK
-		GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_RESET);                    //Reset SCLK
-		GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_RESET);                    //Reset DIO
-		data <<= 1;
-	}
-}
-//Send data to display, static 74HC595 shift register-controlled nixie driver
-void display_output(int hhmmss, int isalarmset, int issynchronized)
-{
-	uint16_t hh,mm,ss;
-
-	ss = 1 << (hhmmss % 10);         // seconds
-	hhmmss /= 10;
-	ss |= 1 << (10 + (hhmmss % 10)); // decades of seconds
-	hhmmss /= 10;
-
-	mm = 1 << (hhmmss % 10);         // minutes
-	hhmmss /= 10;
-	mm |= 1 << (10 + (hhmmss % 10)); // decades of minutes
-	hhmmss /= 10;
-
-	hh = 1 << (hhmmss % 10);         // hours
-	hhmmss /= 10;
-	hh |= 1 << (10 + (hhmmss % 10)); // decades of hours
-
-	if(isalarmset)      hh |= (1 << 13); //Enable "ohm" symbol
-	if(issynchronized) hh |= (1 << 14); //Enable "S" symbol
-	hh |= (1 << 15); //Decimal points always on; included for ease of PWM brightness control
-	sendspi16bit(hh);
-	sendspi16bit(mm);
-	sendspi16bit(ss);
-	GPIO_WriteBit(GPIOB, GPIO_Pin_13, Bit_SET);                       //Set RCLK up and update display
-	GPIO_WriteBit(GPIOB, GPIO_Pin_13, Bit_RESET);                     //Reset RCLK
-}
-//Initialize internal ADC for ambient light measurements
-void adc_init()
-{
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-
-	ADC_InitTypeDef ADC_InitStructure;
-	ADC_StructInit(&ADC_InitStructure);
-	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;       // single channel
-	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE; // single cycle measurement
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfChannel = 1;
-	ADC_Init(ADC1, &ADC_InitStructure);
-	ADC_Cmd(ADC1, ENABLE);
-
-	// channel select
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 1, ADC_SampleTime_55Cycles5);
-
-	// calibration
-	ADC_ResetCalibration(ADC1);
-	while (ADC_GetResetCalibrationStatus(ADC1));
-	ADC_StartCalibration(ADC1);
-	while (ADC_GetCalibrationStatus(ADC1));
-}
-uint16_t get_adc_value()
-{
-	ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET);
-	return ADC_GetConversionValue(ADC1);
-}
-//Smooth of the ADC readings
-int expfilter(int count)
-{
-	//const int N_AVG = 14;
-	const int N_AVG = 6; //2^N averages
-	static int j = 0;
-	static int round = 0;
-	j = (j << N_AVG) - j + count + round;
-	round = j % (1 << N_AVG);
-	j = (j >> N_AVG);
-	return j;
-}
-//LDR resistance to irradiance conversion
-int insolation(void)
-{
-	int j = expfilter(get_adc_value());
-	return ((1 << 24)/j - (1 << 12));
-}
-
-//Dimming PWM initialization
-TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-TIM_OCInitTypeDef  TIM_OCInitStructure;
-void PWM_init()
-{
-	// TIM3 clock enable
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); // TIM3 clock enable
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |
-	                         RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE); 	// GPIOB clock enable
-
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1 ;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	uint16_t CCR4_Val = 10;
-	uint16_t PrescalerValue = 0;
-
-	PrescalerValue = (uint16_t) (SystemCoreClock / 24000000) - 1; //Compute the prescaler value
-
-	TIM_TimeBaseStructure.TIM_Period = 1023; //Time base configuration
-	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-
-	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
-
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //PWM1 Mode configuration: Channel4
-	TIM_OCInitStructure.TIM_Pulse = CCR4_Val;
-
-	TIM_OC4Init(TIM3, &TIM_OCInitStructure);
-
-	TIM_OC4PreloadConfig(TIM3, TIM_OCPreload_Enable);
-
-	TIM_ARRPreloadConfig(TIM3, ENABLE);
-
-	TIM_Cmd(TIM3, ENABLE);
-}
-//Duty cycle calculation and dimming
-void nixie_dimming()
-{
-	int p = insolation();
-	if(p > 32768) p = 32767;
-	if(p < 128) p = 128;
-
-	TIM_OCInitStructure.TIM_Pulse = ((p*1024)/32768);
-	TIM_OC4Init(TIM3, &TIM_OCInitStructure);
-}
 
 #define DS3231_addr     0xD0 // I2C 7-bit slave address shifted for 1 bit to the left
 #define DS3231_seconds  0x00 // DS3231 seconds address
@@ -191,8 +41,8 @@ int dectobcd (int dec)
 }
 
 // All DS3231 registers
-
-typedef struct {
+typedef struct
+{
 	uint8_t seconds;
 	uint8_t minutes;
 	uint8_t hours;
@@ -368,6 +218,159 @@ void alarmreset(int time, int alarm)
 }
 //GPS synchronization flag
 int syncgps = 0;
+//GPS's UART initialization
+void USART1_Init(int BaudRate)
+{
+	GPIO_InitTypeDef PORT;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1,ENABLE);
+
+	PORT.GPIO_Pin = GPIO_Pin_9;
+	PORT.GPIO_Speed = GPIO_Speed_50MHz;
+	PORT.GPIO_Mode = GPIO_Mode_AF_PP; // TX as AF with Push-Pull
+	GPIO_Init(GPIOA,&PORT);
+	PORT.GPIO_Pin = GPIO_Pin_10;
+	PORT.GPIO_Speed = GPIO_Speed_50MHz;
+	PORT.GPIO_Mode = GPIO_Mode_IN_FLOATING; // RX as in without pull-up
+	GPIO_Init(GPIOA,&PORT);
+
+	USART_InitTypeDef UART;
+
+	UART.USART_BaudRate = BaudRate;
+	UART.USART_HardwareFlowControl = USART_HardwareFlowControl_None; // No flow control
+	UART.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; // RX+TX mode
+	UART.USART_Parity = USART_Parity_No; // No parity check
+	UART.USART_StopBits = USART_StopBits_1; // 1 stop bit
+	UART.USART_WordLength = USART_WordLength_8b; // 8-bit frame
+
+	USART_Init(USART1,&UART);
+	USART_Cmd(USART1,ENABLE);
+
+	NVIC_EnableIRQ (USART1_IRQn);           //USART1 interrupt enable
+	USART1->CR1  |= USART_CR1_RXNEIE;       //Receive complete interrupt
+}
+void USART1_SendChar(char ch)
+{
+   while (!(USART1->SR & USART_SR_TXE)); // Wait while transmit data register not empty
+   USART1->DR = ch;                       // Transmit character (TXE flag cleared automatically)
+}
+//GPS VK2828U7G5LF module configuration
+void GPS_init(void)
+{
+	USART1_Init(9600);
+	int j;
+	//Disable default output strings except GGA
+	const char disGGL[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x47, 0x4c, 0x4c, 0x2a, 0x32,
+			0x31, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x01, 0x00, 0xfb, 0x11};
+	const char disGSA[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x47, 0x53, 0x41, 0x2a, 0x33,
+			0x33, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x02, 0x00, 0xfc, 0x13};
+	const char disGSV[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x47, 0x53, 0x56, 0x2a, 0x32,
+			0x34, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x03, 0x00, 0xfd, 0x15};
+	const char disRMC[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x52, 0x4d, 0x43, 0x2a, 0x33,
+			0x41, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x04, 0x00, 0xfe, 0x17};
+	const char disVTG[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x56, 0x54, 0x47, 0x2a, 0x32,
+			0x33, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x05, 0x00, 0xff, 0x19};
+	//Set 10 samples per second
+	const char sps10[22] = {0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01, 0x00,
+			0x7A, 0x12, 0xB5, 0x62, 0x06, 0x08, 0x00, 0x00, 0x0E, 0x30};
+	//Set 115200 baud rate
+	const char baud115[37] = {0xb5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xd0, 0x08, 0x00, 0x00,
+			            0x00, 0xc2, 0x01, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc4, 0x96,
+			            0xb5, 0x62, 0x06, 0x00, 0x01, 0x00, 0x01, 0x08, 0x22};
+
+	for(j = 0; j < 26;j++)  USART1_SendChar(disGGL[j]);
+	for(j = 0; j < 26;j++)  USART1_SendChar(disGSA[j]);
+	for(j = 0; j < 26;j++)  USART1_SendChar(disGSV[j]);
+	for(j = 0; j < 26;j++)  USART1_SendChar(disRMC[j]);
+	for(j = 0; j < 26;j++)  USART1_SendChar(disVTG[j]);
+	for(j = 0; j < 22;j++)  USART1_SendChar(sps10[j]);
+	for(j = 0; j < 37;j++)  USART1_SendChar(baud115[j]);
+	USART1_Init(115200);
+}
+//Checks for sync conditions and set GPS derived time
+void synctime(int utctime)
+{
+	int time_seconds = bcdtodec(date.seconds);
+	int time_minutes = bcdtodec(date.minutes);
+	int time_hours =   bcdtodec(date.hours);
+	int time_s = time_seconds + 60*time_minutes + 3600*time_hours;
+
+	int alarm_minutes = bcdtodec(date.alarm2_hours);
+	int alarm_hours = bcdtodec(date.alarm2_hours);
+	int alarm_s = 60* alarm_minutes + 3600* alarm_hours;
+
+	if(abs(alarm_s - time_s) > 600) // forbid synchronization near alarm to prevent alarm skipping
+	{
+		int utctime_s = (utctime % 100) + 60*((utctime / 100) % 100);
+		time_s %= 3600;
+		if(abs(utctime_s - time_s) < 1200) //sync only when difference is less than 20 minutes to sync only mid-hour
+		{
+			date.seconds = dectobcd(utctime_s % 60); //sync only minutes and seconds to preserve time zone hours shift
+			date.minutes = dectobcd(utctime_s / 60);
+	  		timesettings_ischanged = 1;
+	  		syncgps = 1;
+		}
+	}
+}
+
+//Read and parse GPS output; GPS sync happens here
+void USART1_IRQHandler(void)
+{
+	static int cnt = 0;          //String position
+	static int utctime = 0;
+	static char n_sat = 0;       //Number of satellites detected
+	unsigned char tmp;
+	if((USART1->SR & USART_SR_RXNE)!=0) //Check if interrupt is caused by receiving of character
+	{
+		tmp = USART1->DR;               //Receive new character
+		//$GPGGA,060556.00,2236.91418,N,11403.24669,E,2,08,1.02,115.1,M,-2.4,M,,0000*43 -- GPS input example
+		if(tmp == '$') cnt = 0; //Set start marker
+		else
+		{
+			cnt++;
+			tmp -= 48;     //ASCII to decimal digit conversion of character
+			switch (cnt)
+			{
+				//UTC Time positions
+			    case 7: utctime += 10*1000*1000*tmp;
+					break;
+				case 8: utctime += 1000*1000*tmp;
+					break;
+				case 9: utctime += 100*1000*tmp;
+					break;
+				case 10: utctime += 10*1000*tmp;
+					break;
+				case 11: utctime += 1000*tmp;
+					break;
+				case 12: utctime += 100*tmp;
+					break;
+				case 14: utctime += 10*tmp;
+				    break;
+				case 15: utctime += tmp;
+				    break;
+				//Satellite number positions
+				case 46: n_sat += 10*tmp;
+					break;
+				case 47:
+				    {
+					    n_sat += tmp;
+					    if((utctime % 1000 == 990)  // Synchronize at hh:mm:s9.90, 0.10s in advance to compensate all delays
+					    		&& (n_sat > 2))    // Enough satellites are visible
+					    {
+					    	utctime/= 100;         //Omit .xx seconds part and floor hh:mm:s9.90 t0 hh:mm:s9
+					    	utctime++;             //Add one second to hh:mm:(s+1)0
+					    	if(utctime % 100 != 60)//if !hh:mm:60
+					    	{
+						    	synctime(utctime);
+					    	}
+					    }
+					    n_sat = 0;
+					    utctime = 0;
+				    }
+					break;
+			}
+		}
+	}
+}
 //Buttons for time and alarm setting
 void buttons_init(void)
 {
@@ -450,162 +453,6 @@ void alarmhourincr()
 	else h++;
 	date.alarm2_hours = dectobcd(h);
 }
-//GPS's UART initialization
-void USART1_Init(int BaudRate)
-{
-	GPIO_InitTypeDef PORT;
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1,ENABLE);
-
-	PORT.GPIO_Pin = GPIO_Pin_9;
-	PORT.GPIO_Speed = GPIO_Speed_50MHz;
-	PORT.GPIO_Mode = GPIO_Mode_AF_PP; // TX as AF with Push-Pull
-	GPIO_Init(GPIOA,&PORT);
-	PORT.GPIO_Pin = GPIO_Pin_10;
-	PORT.GPIO_Speed = GPIO_Speed_50MHz;
-	PORT.GPIO_Mode = GPIO_Mode_IN_FLOATING; // RX as in without pull-up
-
-	GPIO_Init(GPIOA,&PORT);
-
-	USART_InitTypeDef UART;
-
-	UART.USART_BaudRate = BaudRate;
-	UART.USART_HardwareFlowControl = USART_HardwareFlowControl_None; // No flow control
-	UART.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; // RX+TX mode
-	UART.USART_Parity = USART_Parity_No; // No parity check
-	UART.USART_StopBits = USART_StopBits_1; // 1 stop bit
-	UART.USART_WordLength = USART_WordLength_8b; // 8-bit frame
-
-	USART_Init(USART1,&UART);
-	USART_Cmd(USART1,ENABLE);
-
-	NVIC_EnableIRQ (USART1_IRQn);           //USART1 interrupt enable
-	USART1->CR1  |= USART_CR1_RXNEIE;       //Receive complete interrupt
-}
-void USART1_SendChar(char ch)
-{
-   while (!(USART1->SR & USART_SR_TXE)); // Wait while transmit data register not empty
-   USART1->DR = ch;                       // Transmit character (TXE flag cleared automatically)
-}
-//GPS VK2828U7G5LF module configuration
-void GPS_init(void)
-{
-	USART1_Init(9600);
-	int j;
-	//Disable default output strings except GGA
-	const char disGGL[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x47, 0x4c, 0x4c, 0x2a, 0x32,
-			0x31, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x01, 0x00, 0xfb, 0x11};
-	const char disGSA[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x47, 0x53, 0x41, 0x2a, 0x33,
-			0x33, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x02, 0x00, 0xfc, 0x13};
-	const char disGSV[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x47, 0x53, 0x56, 0x2a, 0x32,
-			0x34, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x03, 0x00, 0xfd, 0x15};
-	const char disRMC[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x52, 0x4d, 0x43, 0x2a, 0x33,
-			0x41, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x04, 0x00, 0xfe, 0x17};
-	const char disVTG[26] = {0x24, 0x45, 0x49, 0x47, 0x50, 0x51, 0x2c, 0x56, 0x54, 0x47, 0x2a, 0x32,
-			0x33, 0x0d, 0x0a, 0xb5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xf0, 0x05, 0x00, 0xff, 0x19};
-	//Set 10 samples per second
-	const char sps10[22] = {0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01, 0x00,
-			0x7A, 0x12, 0xB5, 0x62, 0x06, 0x08, 0x00, 0x00, 0x0E, 0x30};
-	//Set 115200 baud rate
-	const char baud115[37] = {0xb5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xd0, 0x08, 0x00, 0x00,
-			            0x00, 0xc2, 0x01, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc4, 0x96,
-			            0xb5, 0x62, 0x06, 0x00, 0x01, 0x00, 0x01, 0x08, 0x22};
-
-	for(j = 0; j < 26;j++)  USART1_SendChar(disGGL[j]);
-	for(j = 0; j < 26;j++)  USART1_SendChar(disGSA[j]);
-	for(j = 0; j < 26;j++)  USART1_SendChar(disGSV[j]);
-	for(j = 0; j < 26;j++)  USART1_SendChar(disRMC[j]);
-	for(j = 0; j < 26;j++)  USART1_SendChar(disVTG[j]);
-	for(j = 0; j < 22;j++)  USART1_SendChar(sps10[j]);
-	for(j = 0; j < 37;j++)  USART1_SendChar(baud115[j]);
-	USART1_Init(115200);
-}
-//Checks for sync conditions and set GPS derived time
-void synctime(int utctime)
-{
-	int time_seconds = bcdtodec(date.seconds);
-	int time_minutes = bcdtodec(date.minutes);
-	int time_hours =   bcdtodec(date.hours);
-	int time_s = time_seconds + 60*time_minutes + 3600*time_hours;
-
-	int alarm_minutes = bcdtodec(date.alarm2_hours);
-	int alarm_hours = bcdtodec(date.alarm2_hours);
-	int alarm_s = 60* alarm_minutes + 3600* alarm_hours;
-
-	if(abs(alarm_s - time_s) > 600) // forbid synchronization near alarm to prevent alarm skipping
-	{
-		int utctime_s = (utctime % 100) + 60*((utctime / 100) % 100);
-		time_s %= 3600;
-		if(abs(utctime_s - time_s) < 1200) //sync only when difference is less than 20 minutes to sync only mid-hour
-		{
-			date.seconds = dectobcd(utctime_s % 60); //sync only minutes and seconds to preserve time zone hours shift
-			date.minutes = dectobcd(utctime_s / 60);
-	  		timesettings_ischanged = 1;
-	  		syncgps = 1;
-		}
-	}
-}
-
-//Read and parse GPS output
-void USART1_IRQHandler(void)
-{
-	static int cnt = 0;          //String position
-	static int utctime = 0;
-	static char n_sat = 0;       //Number of satellites detected
-	unsigned char tmp;
-	if((USART1->SR & USART_SR_RXNE)!=0) //Check if interrupt is caused by receiving of character
-	{
-		tmp = USART1->DR;               //Receive new character
-		//$GPGGA,060556.00,2236.91418,N,11403.24669,E,2,08,1.02,115.1,M,-2.4,M,,0000*43 -- GPS input example
-		if(tmp == '$') cnt = 0; //Set start marker
-		else
-		{
-			cnt++;
-			tmp -= 48;     //ASCII to decimal digit conversion of character
-			switch (cnt)
-			{
-				//UTC Time positions
-			    case 7: utctime += 10*1000*1000*tmp;
-					break;
-				case 8: utctime += 1000*1000*tmp;
-					break;
-				case 9: utctime += 100*1000*tmp;
-					break;
-				case 10: utctime += 10*1000*tmp;
-					break;
-				case 11: utctime += 1000*tmp;
-					break;
-				case 12: utctime += 100*tmp;
-					break;
-				case 14: utctime += 10*tmp;
-				    break;
-				case 15: utctime += tmp;
-				    break;
-				//Satellite number positions
-				case 46: n_sat += 10*tmp;
-					break;
-				case 47:
-				    {
-					    n_sat += tmp;
-					    if((utctime % 1000 == 990)  // Synchronize at hh:mm:s9.90, 0.10s in advance to compensate all delays
-					    		&& (n_sat > 2))    // Enough satellites are visible
-					    {
-					    	utctime/= 100;         //Omit .xx seconds part and floor hh:mm:s9.90 t0 hh:mm:s9
-					    	utctime++;             //Add one second to hh:mm:(s+1)0
-					    	if(utctime % 100 != 60)//if !hh:mm:60
-					    	{
-						    	synctime(utctime);
-					    	}
-					    }
-					    n_sat = 0;
-					    utctime = 0;
-				    }
-					break;
-			}
-		}
-	}
-}
-
 int display_alarm; // 0 -- display time, 1 -- display alarm time flag
 //Buttons for time and alarm setting actions
 void TIM4_IRQHandler(void)
@@ -640,23 +487,23 @@ void TIM4_IRQHandler(void)
     	syncgps = 0;
     }
 }
+
 int main(void)
 {
 	int time,alarm;         //hhmmss decimal values
-	watchdog_timer_init();
-	DS3231_init();
+	//watchdog_timer_init();
+	DS3231_init();          //DS3231 communication settings
 	DS3231_ReadDateRAW();   //Check if DS3231 was set before power up
-	if( DS3231_is_reset()) DS3231_startsettings();
+	if(DS3231_is_reset()) DS3231_startsettings();
 	GPS_init();
 	display_init();
-	adc_init();             //ADC for light sensor
-	PWM_init();             //PWM for brightness control
+	nixie_dimming_init();
 	buttons_init();
 	buttons_timer_init();
 	alarm_indication_init();
 	while(1)
 	{
-		IWDG_ReloadCounter();      //Watchdog reset
+		//IWDG_ReloadCounter();      //Watchdog reset
 		if(timesettings_ischanged) //Time settings was changed manually or via GPS synchronization
     	{
     		DS3231_WriteDateRAW();
@@ -667,15 +514,11 @@ int main(void)
 		alarm =  alarm_hhmmss();
 		alarmreset(time, alarm);
 		nixie_dimming();
+		for(volatile int i = 0; i < 100000;i++);
 		if(display_alarm) display_output(alarm, alarm_indication(), syncgps);
-		else display_output(alarm, alarm_indication(), syncgps);
+		else display_output(time, alarm_indication(), syncgps);
 	}
 }
-
-
-
-
-
 
 
 
